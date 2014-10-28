@@ -7,6 +7,21 @@ function Camera() {
 }
 Camera.prototype = Object.create(SceneNode.prototype);
 
+Camera.prototype.lookAt = (function() {
+  var _tmpMat4 = mat4.create();
+  var _tmpMat3 = mat3.create();
+  return function(vec, up) {
+    var up_ = up || FOUR.defaultUp;
+    mat4.lookAt(_tmpMat4, this.position, vec, up_);
+    mat3.fromMat4(_tmpMat3, _tmpMat4);
+    quat.fromMat3(this.rotation, _tmpMat3);
+    quat.normalize(this.rotation, this.rotation);
+    // TODO: Figure out why this is needed...
+    quat.invert(this.rotation, this.rotation);
+    this.updateMatrix();
+  };
+})();
+
 Camera.prototype.updateScreenMatrix = function() {
   mat4.multiply(this.screenMatrix, this.projMatrix, this.matrixWorldInverse);
 };

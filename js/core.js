@@ -37,3 +37,5 @@ bsphere.transformMat4 = function(out, a, m) {
 };
 
 var FOUR = {};
+
+FOUR.defaultUp = vec3.fromValues(0, 0, 1);

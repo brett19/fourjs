@@ -13,6 +13,7 @@ SimpleScene.prototype.add = function(child) {
   }
   this.children.push(child);
   child.parent = this;
+  child.updateMatrixWorld();
 };
 
 SimpleScene.prototype.remove = function(child) {
@@ -23,4 +24,17 @@ SimpleScene.prototype.remove = function(child) {
     return true;
   }
   return false;
+};
+
+SimpleScene.prototype._foreachInFrustum = function(obj, frustum, callback) {
+  var children = obj.children;
+  for (var i = 0, l = children.length; i < l; ++i) {
+    var child = children[i];
+    callback(child);
+    this._foreachInFrustum(child, frustum, callback);
+  }
+};
+
+SimpleScene.prototype.foreachInFrustum = function(frustum, callback) {
+  this._foreachInFrustum(this, frustum, callback);
 };

@@ -25,14 +25,14 @@ SceneNode.prototype.worldToLocal = (function() {
   };
 })();
 
-SceneNode.prototype.updateMatrix = function() {
+SceneNode.prototype.updateMatrix = function () {
   mat4.fromRotationTranslation(this.matrix, this.rotation, this.position);
   mat4.scale(this.matrix, this.matrix, this.scale);
   this.updateMatrixWorld();
 };
 
 SceneNode.prototype.updateMatrixWorld = function() {
-  if (this.parent) {
+  if (false && this.parent) {
     mat4.multiply(this.matrixWorld, this.parent.matrixWorld, this.matrix);
   } else {
     mat4.copy(this.matrixWorld, this.matrix);
@@ -50,6 +50,7 @@ SceneNode.prototype.add = function(child) {
   }
   this.children.push(child);
   child.parent = this;
+  child.updateMatrixWorld();
 };
 
 SceneNode.prototype.remove = function(child) {

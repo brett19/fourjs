@@ -21,7 +21,8 @@ Shader.UniformType = {
   Vector3: 8,
   Vector4: 9,
   Matrix3: 10,
-  Matrix4: 11
+  Matrix4: 11,
+  Sampler2d: 12
 };
 
 function ShaderMaterial(shader, opts) {
