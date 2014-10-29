@@ -34,8 +34,43 @@ function Renderer(canvas) {
   /**
    * @type {WebGLRenderingContext}
    */
-  this._gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  this._gl = gl;
 
+  // Extensions
+  var exts = {
+    's3tc': [
+        'WEBGL_compressed_texture_s3tc',
+        'MOZ_WEBGL_compressed_texture_s3tc',
+        'WEBKIT_WEBGL_compressed_texture_s3tc'
+    ],
+    'pvrtc': [
+        'WEBGL_compressed_texture_pvrtc',
+        'WEBKIT_WEBGL_compressed_texture_pvrtc'
+    ],
+    'anisotropy': [
+        'EXT_texture_filter_anisotropic',
+        'MOZ_EXT_texture_filter_anisotropic',
+        'WEBKIT_EXT_texture_filter_anisotropic'
+    ]
+  };
+  var _glExt = {};
+  for (var i in exts) {
+    if (exts.hasOwnProperty(i)) {
+      var extnames = exts[i];
+      for (var j = 0; j < extnames.length; ++j) {
+        var ext = gl.getExtension(extnames[j]);
+        if (ext) {
+          _glExt[i] = ext;
+          break;
+        }
+      }
+    }
+  }
+  this._glExt = _glExt;
+  console.log(_glExt);
+
+  // Renderer State
   this._curScreenMatrix = null;
   this._curModelViewMatrix = null;
 
@@ -50,8 +85,16 @@ function Renderer(canvas) {
   this._glCurBuffers = [];
   this._glCurTexStage = undefined;
   this._glCurTexture = [];
+  this._glLineWidth = undefined;
   this._activeShader = undefined;
 }
+
+Renderer.prototype.glLineWidth = function(width) {
+  if (this._glLineWidth !== width) {
+    this._gl.lineWidth(width);
+    this._glLineWidth = width;
+  }
+};
 
 Renderer.prototype.glEnable = function(what) {
   if (this._glEnabledFlags[what] !== true) {
@@ -296,7 +339,6 @@ Renderer.prototype.bindAttributes = (function() {
 })();
 
 Renderer.prototype.bindUniforms = function(uniforms, uniformValues) {
-  var gl = this._gl;
   var texStageNum = 0;
   for (var i = 0, l = uniforms.length; i < l; ++i) {
     var uniform = uniforms[i];
@@ -330,8 +372,20 @@ Renderer.prototype.bindUniforms = function(uniforms, uniformValues) {
 Renderer.prototype.buildShaderData = function(shaderData, shader) {
   var gl = this._gl;
 
+  var vertexStr = shader.vertex;
+  var fragmentStr = shader.fragment;
+
+  var defines = shader.defines;
+  for (var i in defines) {
+    if (defines.hasOwnProperty(i)) {
+      var defineLine = '#define ' + i + '=' + defines[i] + '\n';
+      vertexStr = defineLine + vertexStr;
+      fragmentStr = defineLine + fragmentStr;
+    }
+  }
+
   var vs = gl.createShader(gl.VERTEX_SHADER);
-  gl.shaderSource(vs, shader.vertex);
+  gl.shaderSource(vs, vertexStr);
   gl.compileShader(vs);
   if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
     console.log(gl.getShaderInfoLog(vs));
@@ -340,7 +394,7 @@ Renderer.prototype.buildShaderData = function(shaderData, shader) {
   shaderData.vertex = vs;
 
   var fs = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fs, shader.fragment);
+  gl.shaderSource(fs, fragmentStr);
   gl.compileShader(fs);
   if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
     console.log(gl.getShaderInfoLog(fs));
@@ -361,14 +415,18 @@ Renderer.prototype.buildShaderData = function(shaderData, shader) {
   var uniforms = shader.uniforms;
   for (var name in uniforms) {
     var location = gl.getUniformLocation(program, name);
-    shaderData.uniforms.push(new RShaderUniform(name, location, uniforms[name]));
+    if (location) {
+      shaderData.uniforms.push(new RShaderUniform(name, location, uniforms[name]));
+    }
   }
 
   var attributes = shader.attributes;
   for (var i = 0, l = attributes.length; i < l; ++i) {
     var name = attributes[i];
-    var location = gl.getAttribLocation(program, name);
-    shaderData.attributes.push(new RShaderAttribute(name, location));
+    var index = gl.getAttribLocation(program, name);
+    if (index >= 0) {
+      shaderData.attributes.push(new RShaderAttribute(name, index));
+    }
   }
 
   return true;
@@ -379,6 +437,19 @@ Renderer.prototype._ftoglImageFormat = function(val) {
     return this._gl.RGB;
   } else if (val === Texture.Format.RGBA) {
     return this._gl.RGBA;
+  }
+
+  var s3tcExt = this._glExt.s3tc;
+  if (s3tcExt) {
+    if (val === Texture.Format.DXT1_RGB) {
+      return s3tcExt.COMPRESSED_RGB_S3TC_DXT1_EXT;
+    } else if (val === Texture.Format.DXT1_RGBA) {
+      return s3tcExt.COMPRESSED_RGBA_S3TC_DXT1_EXT;
+    } else if (val === Texture.Format.DXT3_RGBA) {
+      return s3tcExt.COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    } else if (val === Texture.Format.DXT5_RGBA) {
+      return s3tcExt.COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    }
   }
   return this._gl.NONE;
 };
@@ -406,6 +477,8 @@ Renderer.prototype._ftoglPrimitiveType = function(val) {
     return this._gl.TRIANGLES;
   } else if (val === Geometry.PrimitiveType.TriangleStrip) {
     return this._gl.TRIANGLE_STRIP;
+  } else if (val === Geometry.PrimitiveType.Lines) {
+    return this._gl.LINES;
   }
   return this._gl.NONE;
 };
@@ -431,10 +504,29 @@ Renderer.prototype.bindTexture = function(texture) {
   if (texture.needsUpdate) {
     var glImageFormat = this._ftoglImageFormat(texture.format);
     var glPixelFormat = this._ftoglPixelFormat(texture.pixelFormat);
-    gl.texImage2D(gl.TEXTURE_2D, 0, glImageFormat, glImageFormat, glPixelFormat, texture.data);
+
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+
+    if (Array.isArray(texture.data)) {
+      var texData = texture.data;
+      for (var i = 0, l = texData.length; i < l; ++i) {
+        var texLevel = texData[i];
+        if (texLevel.needsUpdate) {
+          if (texture.format < 1000) {
+            gl.texImage2D(gl.TEXTURE_2D, i, glImageFormat, texLevel.width, texLevel.height, 0, glImageFormat, glPixelFormat, texLevel.data);
+          } else {
+            gl.compressedTexImage2D(gl.TEXTURE_2D, i, glImageFormat, texLevel.width, texLevel.height, 0, texLevel.data);
+          }
+          texLevel.needsUpdate = false;
+        }
+      }
+    } else {
+      gl.texImage2D(gl.TEXTURE_2D, 0, glImageFormat, glImageFormat, glPixelFormat, texture.data);
+    }
+
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
     texture.needsUpdate = false;
   }
@@ -455,12 +547,13 @@ Renderer.prototype.bindShader = function(shader, uniformValues, attributeBuffers
   this.useShader(shaderData);
 
   this.glEnable(gl.DEPTH_TEST);
-  this.glDisable(gl.CULL_FACE);
-  this.glEnable(gl.BLEND);
-
   this.glDepthMask(true);
+
+  //this.glDisable(gl.CULL_FACE);
+
+  this.glEnable(gl.BLEND);
   this.glBlendEquation(gl.FUNC_ADD, gl.FUNC_ADD);
-  this.glBlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  this.glBlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   if (!this.bindAttributes(shaderData.attributes, attributeBuffers)) {
     return false;
@@ -493,6 +586,7 @@ Renderer.prototype.render = function(scene, camera) {
 
   gl.clearColor(0.9, 0.9, 0.9, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  this.glLineWidth(1.0);
 
   this._curScreenMatrix = camera.screenMatrix;
 

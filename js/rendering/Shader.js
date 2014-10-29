@@ -3,6 +3,7 @@ function Shader(opts) {
 
   this.vertex = opts_.vertex;
   this.fragment = opts_.fragment;
+  this.defines = opts_.defines || {};
   this.uniforms = opts_.uniforms || {};
   this.attributes = opts_.attributes || [];
 

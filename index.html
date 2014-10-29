@@ -12,12 +12,12 @@
     </style>
 </head>
 <body>
-    <script id="vertexShader" type="x-shader/x-vertex">
+<script id="vertexShaderAh" type="x-shader/x-vertex">
         precision mediump float;
         precision mediump int;
 
-        uniform mat4 modelViewMatrix; // optional
-        uniform mat4 projectionMatrix; // optional
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
 
         attribute vec3 position;
         attribute vec4 color;
@@ -32,26 +32,60 @@
         }
     </script>
 
-    <script id="fragmentShader" type="x-shader/x-fragment">
+<script id="fragmentShaderAh" type="x-shader/x-fragment">
         precision mediump float;
         precision mediump int;
-
-        uniform float time;
-        uniform sampler2D texTest;
 
         varying vec3 vPosition;
         varying vec4 vColor;
 
         void main()	{
-          vec4 color = texture2D(texTest, vec2(vPosition.x, vPosition.y)) * vec4( vColor );
-          color.r += sin( vPosition.x * 10.0 + time ) * 0.5;
-          gl_FragColor = color;
+          gl_FragColor = vColor;
+        }
+    </script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+        precision mediump float;
+        precision mediump int;
+
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+
+        attribute vec3 position;
+        attribute vec2 uv;
+
+        varying vec3 vPosition;
+        varying vec2 vUv;
+
+        void main()	{
+          vPosition = position;
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        precision mediump int;
+
+        uniform sampler2D texTest;
+
+        varying vec3 vPosition;
+        varying vec2 vUv;
+
+        void main()	{
+          #ifdef ROSE_SPECULAR
+            gl_FragColor = vec4(texture2D(texTest, vUv).xyz, 1);
+          #else
+            gl_FragColor = texture2D(texTest, vUv);
+          #endif
         }
     </script>
 
     <script src="js/thirdparty/stats.min.js"></script>
     <script src="js/thirdparty/gl-matrix.js"></script>
     <script src="js/core.js"></script>
+    <script src="js/io.js"></script>
     <script src="js/rendering/Geometry.js"></script>
     <script src="js/rendering/Renderer.js"></script>
     <script src="js/rendering/Shader.js"></script>
@@ -61,6 +95,10 @@
     <script src="js/scene/SceneNode.js"></script>
     <script src="js/scene/Mesh.js"></script>
     <script src="js/scene/Camera.js"></script>
-    <script src="test.js"></script>
+    <script src="jst/util/binaryreader.js"></script>
+    <script src="jst/util/roseloader.js"></script>
+    <script src="jst/formats/dds.js"></script>
+    <script src="jst/formats/mesh.js"></script>
+    <script src="jst/test.js"></script>
 </body>
 </html>

@@ -50,7 +50,8 @@ function Geometry() {
 
 Geometry.PrimitiveType = {
   Triangles: 0,
-  TriangleStrip: 1
+  TriangleStrip: 1,
+  Lines: 2
 };
 
 Geometry.prototype.addAttribute = function(name, buffer, itemSize, offset, format) {
