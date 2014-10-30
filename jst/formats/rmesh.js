@@ -231,6 +231,13 @@ RMesh.prototype.createGeometry = function() {
 
   geometry.addAttribute('position', this.vertices, 3);
 
+  if (this.skinWeights) {
+    geometry.addAttribute('skinWeight', this.skinWeights, 4);
+  }
+  if (this.skinIndices) {
+    geometry.addAttribute('skinIndex', this.skinIndices, 4);
+  }
+
   if (this.uv[0]) {
     geometry.addAttribute('uv', this.uv[0], 2);
   }

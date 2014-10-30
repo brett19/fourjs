@@ -320,8 +320,6 @@ DDS.load = function(path, callback) {
       }
     }
 
-    console.log(header);
-
     for (var i = 0; i < faces; ++i) {
       var width  = header.width;
       var height = header.height;
@@ -450,41 +448,6 @@ DDS.load = function(path, callback) {
       }
     }
 
-    /*
-    if (cubemap) {
-      var idx = 0;
-
-      for (var i = 0; i < faces; ++i) {
-        var image = { mipmaps: [] };
-
-        for (var j = 0; j < header.mipmaps; ++j) {
-          image.mipmaps.push(mipmaps[idx++]);
-          image.format = texture.format;
-          image.width  = texture.width;
-          image.height = texture.height;
-        }
-
-        texture.images[i] = face;
-      }
-    } else {
-      texture.image.width = header.width;
-      texture.image.height = header.height;
-      texture.mipmaps = mipmaps;
-    }
-
-    var isDxt = texture.format == THREE.RGB_S3TC_DXT1_Format ||
-        texture.format == THREE.RGBA_S3TC_DXT3_Format ||
-        texture.format == THREE.RGBA_S3TC_DXT5_Format;
-    var widthIsPow2 = (header.width & (header.width - 1)) == 0;
-    var heightIsPow2 = (header.height & (header.height - 1)) == 0;
-    if (isDxt && widthIsPow2 && heightIsPow2) {
-      texture.minFilter = THREE.LinearMipMapLinearFilter;
-    }
-
-    texture.format = format;
-    texture.needsUpdate = true;
-    */
-
     texture.data = [];
     for (var i = 0; i < mipmaps.length; ++i) {
       var texLevel = new TextureLevel();
@@ -497,8 +460,6 @@ DDS.load = function(path, callback) {
 
     texture.format = format;
     texture.needsUpdate = true;
-
-    console.log(texture);
 
     if (callback) {
       callback(texture);

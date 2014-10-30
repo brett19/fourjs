@@ -16,3 +16,14 @@ Mesh.prototype.updateMatrix = function() {
       this.geometry.boundingSphere,
       this.matrixWorld);
 };
+
+
+
+function SkinnedMesh(geometry, material, skeleton) {
+  SceneNode.call(this);
+
+  this.geometry = geometry;
+  this.material = material;
+  this.skeleton = skeleton;
+}
+SkinnedMesh.prototype = Object.create(SceneNode.prototype);

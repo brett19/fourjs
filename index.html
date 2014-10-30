@@ -54,13 +54,32 @@
         attribute vec3 position;
         attribute vec2 uv;
 
+        attribute vec4 skinWeight;
+        attribute vec4 skinIndex;
+        uniform mat4 boneMatrices[48];
+
         varying vec3 vPosition;
         varying vec2 vUv;
 
         void main()	{
-          vPosition = position;
+          //vUv = uv;
+          //gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1);
+
+          mat4 mx = boneMatrices[int(skinIndex.x)];
+          mat4 my = boneMatrices[int(skinIndex.y)];
+          mat4 mz = boneMatrices[int(skinIndex.z)];
+          mat4 mw = boneMatrices[int(skinIndex.w)];
+
+          vec4 skinPos = vec4(position, 1.0);
+          vec4 skinnedPos = vec4(0.0);
+          skinnedPos += mx * skinPos * skinWeight.x;
+          skinnedPos += my * skinPos * skinWeight.y;
+          skinnedPos += mz * skinPos * skinWeight.z;
+          skinnedPos += mw * skinPos * skinWeight.w;
+
+          vPosition = skinnedPos.xyz;
           vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+          gl_Position = projectionMatrix * skinnedPos;
         }
     </script>
 
@@ -84,6 +103,7 @@
 
     <script src="js/thirdparty/stats.min.js"></script>
     <script src="js/thirdparty/gl-matrix.js"></script>
+    <script src="js/util/EventEmitter.js"></script>
     <script src="js/core.js"></script>
     <script src="js/io.js"></script>
     <script src="js/rendering/Geometry.js"></script>
@@ -95,10 +115,15 @@
     <script src="js/scene/SceneNode.js"></script>
     <script src="js/scene/Mesh.js"></script>
     <script src="js/scene/Camera.js"></script>
+    <script src="js/scene/Skeleton.js"></script>
     <script src="jst/util/binaryreader.js"></script>
     <script src="jst/util/roseloader.js"></script>
     <script src="jst/formats/dds.js"></script>
-    <script src="jst/formats/mesh.js"></script>
+    <script src="jst/formats/rmesh.js"></script>
+    <script src="jst/formats/rskeleton.js"></script>
+    <script src="jst/formats/ranimation.js"></script>
+    <script src="js/animation/AnimationHandler.js"></script>
+    <script src="js/animation/Animator.js"></script>
     <script src="jst/test.js"></script>
 </body>
 </html>

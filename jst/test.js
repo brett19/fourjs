@@ -10,10 +10,10 @@ var renderer = new Renderer(canvas);
 var camera = new Camera();
 camera.setPerspective(50, window.innerWidth/window.innerHeight, 1, 1000);
 camera.position[0] = 4;
-camera.position[1] = -25;
+camera.position[1] = -18;
 camera.position[2] = 4;
 
-var tvec = vec3.fromValues(0, 0, 0);
+var tvec = vec3.fromValues(0, 0, 2);
 camera.lookAt(tvec);
 
 var scene = new SimpleScene();
@@ -47,21 +47,21 @@ var ahv = new Float32Array(3 * 6);
 ahv[0] = 0;
 ahv[1] = 0;
 ahv[2] = 0;
-ahv[3] = 1;
+ahv[3] = 0.05;
 ahv[4] = 0;
 ahv[5] = 0;
 ahv[6] = 0;
 ahv[7] = 0;
 ahv[8] = 0;
 ahv[9] = 0;
-ahv[10] = 1;
+ahv[10] = 0.05;
 ahv[11] = 0;
 ahv[12] = 0;
 ahv[13] = 0;
 ahv[14] = 0;
 ahv[15] = 0;
 ahv[16] = 0;
-ahv[17] = 1;
+ahv[17] = 0.05;
 ahgeom.addAttribute('position', ahv, 3);
 var ahc = new Float32Array(4 * 6);
 for (var i = 0; i < 2; ++i) {
@@ -86,7 +86,7 @@ ahgeom.addAttribute('color', ahc, 4);
 ahgeom.setDraw(6, 0, Geometry.PrimitiveType.Lines);
 
 var ahmesh = new Mesh(ahgeom, ahmaterial);
-scene.add(ahmesh);
+//scene.add(ahmesh);
 
 /*
 var mesh = new Mesh(geometry, material);
@@ -119,11 +119,14 @@ var shader = new Shader({
     modelViewMatrix: Shader.UniformType.ModelViewMatrix,
     projectionMatrix: Shader.UniformType.ProjectionMatrix,
     time: Shader.UniformType.Float,
-    texTest: Shader.UniformType.Sampler2d
+    texTest: Shader.UniformType.Sampler2d,
+    boneMatrices: Shader.UniformType.BoneMatrices
   },
   attributes: [
     'position',
-    'uv'
+    'uv',
+    'skinWeight',
+    'skinIndex'
   ]
 });
 var material = new ShaderMaterial(shader, {
@@ -135,14 +138,57 @@ var material = new ShaderMaterial(shader, {
 });
 
 var mtest = null;
-RMesh.load('3DDATA/NPC/PLANT/JELLYBEAN1/BODY02.ZMS', function(err, res) {
-  var mesh = new Mesh(res, material);
-  scene.add(mesh);
 
-  mtest = mesh;
+RSkeletonData.load('3DDATA/NPC/PLANT/JELLYBEAN1/JELLYBEAN2_BONE.ZMD', function(err, res) {
+  console.log(err, res);
+
+  var skeleton = new Skeleton();
+  skeleton.position[2] = 0.4;
+  skeleton.updateMatrix();
+
+  var bones = [];
+  for (var i = 0; i < res.bones.length; ++i) {
+    var bone = res.bones[i];
+
+    var boneObj = new SkeletonBone();
+    vec3.copy(boneObj.position, bone.position);
+    quat.copy(boneObj.rotation, bone.rotation);
+    boneObj.updateMatrix(true);
+
+    boneObj.add(new Mesh(ahgeom, ahmaterial))
+
+    if (i > 0) {
+      bones[bone.parent].add(boneObj);
+    } else {
+      skeleton.add(boneObj);
+    }
+
+    bones.push(boneObj);
+  }
+  skeleton.bones = bones;
+  skeleton.updateMatrixWorld();
+  skeleton.setBindPose();
+
+  scene.add(skeleton);
+
+
+  RMesh.load('3DDATA/NPC/PLANT/JELLYBEAN1/BODY02.ZMS', function(err, res) {
+    var mesh = new SkinnedMesh(res, material, skeleton);
+    scene.add(mesh);
+
+    console.log(res);
+
+    mtest = mesh;
+  });
+
+  RAnimationData.load('3DDATA/MOTION/NPC/JELLYBEAN1/JELLYBEAN1_WALK.ZMO', function(err, res) {
+    console.log(err, res);
+
+    var anim = new Animator(bones, res);
+    anim.play();
+
+  });
 });
-
-
 
 
 var stats = new Stats();
@@ -166,9 +212,11 @@ function renderFrame() {
   var time = performance.now();
   var dTime = 0;
   if (prevTime > 0) {
-    dTime = time - prevTime;
+    dTime = (time - prevTime) / 1000;
   }
   prevTime = time;
+
+  AnimationHandler.update(dTime);
 
   material.uniforms.time = time * 0.005;
 
@@ -178,8 +226,8 @@ function renderFrame() {
     //mtest.updateMatrix();
   }
 
-  quat.rotateZ(cobj.rotation, cobj.rotation, dTime * 0.0005);
-  cobj.updateMatrix();
+  //quat.rotateZ(cobj.rotation, cobj.rotation, dTime * 0.5);
+  //cobj.updateMatrix();
 
   /*
   quat.identity(mesh.rotation);

@@ -11,6 +11,8 @@ function SceneNode() {
 
   this.matrix = mat4.create();
   this.matrixWorld = mat4.create();
+
+  this._animCache = null;
 }
 
 SceneNode.prototype.localToWorld = function(out, pos) {
@@ -25,10 +27,12 @@ SceneNode.prototype.worldToLocal = (function() {
   };
 })();
 
-SceneNode.prototype.updateMatrix = function () {
+SceneNode.prototype.updateMatrix = function (noUpdateWorldMatrix) {
   mat4.fromRotationTranslation(this.matrix, this.rotation, this.position);
   mat4.scale(this.matrix, this.matrix, this.scale);
-  this.updateMatrixWorld();
+  if (!noUpdateWorldMatrix) {
+    this.updateMatrixWorld();
+  }
 };
 
 SceneNode.prototype.updateMatrixWorld = function() {

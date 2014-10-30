@@ -68,11 +68,11 @@ function Renderer(canvas) {
     }
   }
   this._glExt = _glExt;
-  console.log(_glExt);
 
   // Renderer State
   this._curScreenMatrix = null;
   this._curModelViewMatrix = null;
+  this._curBoneMatrices = new Float32Array(4*4*48);
 
   // State Tracking
   this._glEnabledFlags = {};
@@ -185,16 +185,16 @@ Renderer.prototype.shaderSetVector4f = function(uniform, v) {
 
 Renderer.prototype.shaderSetMatrix4f = function(uniform, m) {
   var cv = uniform.value;
-  if (cv[0] !== m[0] || cv[1] !== m[1] || cv[2] !== m[2] || cv[3] !== m[3] ||
+  /*if (cv[0] !== m[0] || cv[1] !== m[1] || cv[2] !== m[2] || cv[3] !== m[3] ||
       cv[4] !== m[4] || cv[5] !== m[5] || cv[6] !== m[6] || cv[7] !== m[7] ||
       cv[8] !== m[8] || cv[9] !== m[9] || cv[10] !== m[10] || cv[11] !== m[11] ||
-      cv[12] !== m[12] || cv[13] !== m[13] || cv[14] !== m[14] || cv[15] !== m[15]) {
+      cv[12] !== m[12] || cv[13] !== m[13] || cv[14] !== m[14] || cv[15] !== m[15]) {*/
     this._gl.uniformMatrix4fv(uniform.location, false, m);
-    cv[0] = m[0]; cv[1] = m[1]; cv[2] = m[2]; cv[3] = m[3];
+    /*cv[0] = m[0]; cv[1] = m[1]; cv[2] = m[2]; cv[3] = m[3];
     cv[4] = m[4]; cv[5] = m[5]; cv[6] = m[6]; cv[7] = m[7];
     cv[8] = m[8]; cv[9] = m[9]; cv[10] = m[10]; cv[11] = m[11];
     cv[12] = m[12]; cv[13] = m[13]; cv[14] = m[14]; cv[15] = m[15];
-  }
+  }*/
 };
 
 Renderer.prototype.glActiveTexture = function(index) {
@@ -347,6 +347,8 @@ Renderer.prototype.bindUniforms = function(uniforms, uniformValues) {
       this.shaderSetMatrix4f(uniform, this._curScreenMatrix);
     } else if (uniform.type === Shader.UniformType.ModelViewMatrix) {
       this.shaderSetMatrix4f(uniform, this._curModelViewMatrix);
+    } else if (uniform.type === Shader.UniformType.BoneMatrices) {
+      this.shaderSetMatrix4f(uniform, this._curBoneMatrices);
     } else if (uniform.type === Shader.UniformType.Matrix4) {
       this.shaderSetMatrix4f(uniform, value);
     } else if (uniform.type === Shader.UniformType.Vector2) {
@@ -546,15 +548,6 @@ Renderer.prototype.bindShader = function(shader, uniformValues, attributeBuffers
 
   this.useShader(shaderData);
 
-  this.glEnable(gl.DEPTH_TEST);
-  this.glDepthMask(true);
-
-  //this.glDisable(gl.CULL_FACE);
-
-  this.glEnable(gl.BLEND);
-  this.glBlendEquation(gl.FUNC_ADD, gl.FUNC_ADD);
-  this.glBlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
   if (!this.bindAttributes(shaderData.attributes, attributeBuffers)) {
     return false;
   }
@@ -566,10 +559,77 @@ Renderer.prototype.bindShader = function(shader, uniformValues, attributeBuffers
   return true;
 };
 
-Renderer.prototype.renderGeom = function(geometry, material) {
+Renderer.prototype._ftoglBlendEq = function(val) {
+  if (val === ShaderMaterial.BlendEquation.Add) {
+    return this._gl.FUNC_ADD
+  } else if (val === ShaderMaterial.BlendEquation.Add) {
+    return this._gl.FUNC_SUBTRACT
+  } else if (val === ShaderMaterial.BlendEquation.Add) {
+    return this._gl.FUNC_REVERSE_SUBTRACT;
+  }
+  return this._gl.NONE;
+};
+
+Renderer.prototype._ftoglBlendFunc = function(val) {
+  if (val === ShaderMaterial.BlendFunc.Zero) {
+    return this._gl.ZERO;
+  } else if (val === ShaderMaterial.BlendFunc.One) {
+    return this._gl.ONE;
+  } else if (val === ShaderMaterial.BlendFunc.SrcColor) {
+    return this._gl.SRC_COLOR;
+  } else if (val === ShaderMaterial.BlendFunc.OneMinusSrcColor) {
+    return this._gl.ONE_MINUS_SRC_COLOR;
+  } else if (val === ShaderMaterial.BlendFunc.SrcAlpha) {
+    return this._gl.SRC_ALPHA;
+  } else if (val === ShaderMaterial.BlendFunc.OneMinusSrcAlpha) {
+    return this._gl.ONE_MINUS_DST_ALPHA;
+  } else if (val === ShaderMaterial.BlendFunc.DstAlpha) {
+    return this._gl.DST_ALPHA;
+  } else if (val === ShaderMaterial.BlendFunc.OneMinusDstAlpha) {
+    return this._gl.ONE_MINUS_DST_ALPHA;
+  } else if (val === ShaderMaterial.BlendFunc.DstColor) {
+    return this._gl.DST_COLOR;
+  } else if (val === ShaderMaterial.BlendFunc.OneMinusDstColor) {
+    return this._gl.ONE_MINUS_DST_COLOR;
+  } else if (val === ShaderMaterial.BlendFunc.SrcAlphaSaturate) {
+    return this._gl.SRC_ALPHA_SATURATE;
+  }
+  return this._gl.NONE;
+};
+
+Renderer.prototype.bindMaterial = function(material) {
   var gl = this._gl;
 
+  if (material.depthTest) {
+    this.glEnable(gl.DEPTH_TEST);
+  } else {
+    this.glDisable(gl.DEPTH_TEST);
+  }
+
+  if (material.depthWrite) {
+    this.glDepthMask(true);
+  } else {
+    this.glDepthMask(false);
+  }
+
+  if (material.blend) {
+    this.glEnable(gl.BLEND);
+    this.glBlendEquation(this._ftoglBlendEq(material.blendSrcEq), this._ftoglBlendEq(material.blendDstEq));
+    this.glBlendFunc(
+        this._ftoglBlendFunc(material.blendSrcColor), this._ftoglBlendFunc(material.blendDstColor),
+        this._ftoglBlendFunc(material.blendSrcAlpha), this._ftoglBlendFunc(material.blendDstAlpha));
+  } else {
+    this.glDisable(gl.BLEND);
+  }
+};
+
+Renderer.prototype.renderMesh = function(mesh) {
+  var gl = this._gl;
+  var geometry = mesh.geometry;
+  var material = mesh.material;
+
   this.bindShader(material.shader, material.uniforms, geometry.attributes);
+  this.bindMaterial(material);
 
   var primType = this._ftoglPrimitiveType(geometry.primType);
   if (geometry.indexBuffer) {
@@ -579,6 +639,36 @@ Renderer.prototype.renderGeom = function(geometry, material) {
   } else {
     gl.drawArrays(primType, geometry.drawOffset, geometry.drawCount);
   }
+};
+
+Renderer.prototype.renderSkinnedMesh = function (mesh) {
+  // The bone matrices should be part of the skeleton _glData so it can be sized as small as possible.
+  var bm = this._curBoneMatrices;
+  var s = mesh.skeleton;
+
+  for (var i = 0, j = 0, l = s.bones.length; i < l; ++i, j += 16) {
+    var b = s.bones[i];
+
+    var _boneMat = b.boneMatrix;
+    bm[j+0] = _boneMat[0];
+    bm[j+1] = _boneMat[1];
+    bm[j+2] = _boneMat[2];
+    bm[j+3] = _boneMat[3];
+    bm[j+4] = _boneMat[4];
+    bm[j+5] = _boneMat[5];
+    bm[j+6] = _boneMat[6];
+    bm[j+7] = _boneMat[7];
+    bm[j+8] = _boneMat[8];
+    bm[j+9] = _boneMat[9];
+    bm[j+10] = _boneMat[10];
+    bm[j+11] = _boneMat[11];
+    bm[j+12] = _boneMat[12];
+    bm[j+13] = _boneMat[13];
+    bm[j+14] = _boneMat[14];
+    bm[j+15] = _boneMat[15];
+  }
+
+  this.renderMesh(mesh);
 };
 
 Renderer.prototype.render = function(scene, camera) {
@@ -591,9 +681,11 @@ Renderer.prototype.render = function(scene, camera) {
   this._curScreenMatrix = camera.screenMatrix;
 
   scene.foreachInFrustum(null, function(obj) {
+    this._curModelViewMatrix = obj.matrixWorld;
     if (obj instanceof Mesh) {
-      this._curModelViewMatrix = obj.matrixWorld;
-      this.renderGeom(obj.geometry, obj.material);
+      this.renderMesh(obj);
+    } else if (obj instanceof SkinnedMesh) {
+      this.renderSkinnedMesh(obj);
     }
   }.bind(this));
 };
