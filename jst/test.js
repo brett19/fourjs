@@ -40,32 +40,11 @@ var material = new FOUR.ShaderMaterial('test', {
 
 var mtest = null;
 
-RSkeletonData.load('3DDATA/NPC/PLANT/JELLYBEAN1/JELLYBEAN2_BONE.ZMD', function(err, res) {
-  
-  var skeleton = new FOUR.Skeleton();
+RSkeletonData.load('3DDATA/NPC/PLANT/JELLYBEAN1/JELLYBEAN2_BONE.ZMD', function(err, skelData) {
+
+  var skeleton = new RSkeleton(skelData);
   skeleton.position[2] = 0.4;
   skeleton.updateMatrix();
-
-  var bones = [];
-  for (var i = 0; i < res.bones.length; ++i) {
-    var bone = res.bones[i];
-
-    var boneObj = new FOUR.SkeletonBone();
-    vec3.copy(boneObj.position, bone.position);
-    quat.copy(boneObj.rotation, bone.rotation);
-    boneObj.updateMatrix(true);
-
-    if (i > 0) {
-      bones[bone.parent].add(boneObj);
-    } else {
-      skeleton.add(boneObj);
-    }
-
-    bones.push(boneObj);
-  }
-  skeleton.bones = bones;
-  skeleton.updateMatrixWorld();
-  skeleton.setBindPose();
 
   scene.add(skeleton);
 
@@ -81,10 +60,9 @@ RSkeletonData.load('3DDATA/NPC/PLANT/JELLYBEAN1/JELLYBEAN2_BONE.ZMD', function(e
     mtest = mesh;
   });
 
-  RAnimationData.load('3DDATA/MOTION/NPC/JELLYBEAN1/JELLYBEAN1_WALK.ZMO', function(err, res) {
-    console.log(err, res);
+  RAnimationData.load('3DDATA/MOTION/NPC/JELLYBEAN1/JELLYBEAN1_WALK.ZMO', function(err, animData) {
 
-    var anim = new Animator(bones, res);
+    var anim = new RSkeletonAnimator(skeleton, animData);
     anim.play();
 
   });

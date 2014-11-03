@@ -1,10 +1,13 @@
-var RSkeletonData = function() {
-  this.bones = [];
-  this.dummies = [];
+RSkeletonBone = function() {
+  this.parent = -1;
+  this.name = '';
+  this.position = null;
+  this.rotation = null;
 };
 
-
-RSkeletonData.Bone = function() {
+function RSkeletonData() {
+  this.bones = [];
+  this.dummies = [];
 };
 
 RSkeletonData.load = function(path, callback) {
@@ -23,12 +26,13 @@ RSkeletonData.load = function(path, callback) {
     } else if (magic === 'ZMD0003') {
       version = 3;
     } else {
-      throw 'Unexpected ZMD magic header ' + magic + ' in ' + path;
+      callback(new Error('Unexpected ZMD magic header ' + magic + ' in ' + path), null);
+      return;
     }
 
     bones = rh.readUint32();
     for (var i = 0; i < bones; ++i) {
-      var bone = new RSkeletonData.Bone();
+      var bone = new RSkeletonBone();
       bone.parent   = rh.readUint32();
       bone.name     = rh._readString();
       bone.position = rh.readVector3();
@@ -45,7 +49,7 @@ RSkeletonData.load = function(path, callback) {
 
     dummies = rh.readUint32();
     for (i = 0; i < dummies; ++i) {
-      var dummy = new RSkeletonData.Bone();
+      var dummy = new RSkeletonBone();
       dummy.name     = rh._readString();
       dummy.parent   = rh.readUint32();
       dummy.position = rh.readVector3();
