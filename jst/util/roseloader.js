@@ -8,6 +8,6 @@ RoseLoader.load = function(path, callback) {
       callback(err, null);
       return;
     }
-    callback(null, new BinaryReader(res));
+    callback(null, new FOUR.BinaryReader(res));
   })
 };

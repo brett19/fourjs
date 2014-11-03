@@ -1,36 +1,42 @@
-function StaticSceneNode(bounds) {
-  this.bounds = bounds;
-  this.children = null;
-  this.contents = [];
-}
+(function(FOUR) {
 
-StaticSceneNode.prototype.branch = function() {
-  this.children = [
-    new StaticSceneNode(),
-    new StaticSceneNode(),
-    new StaticSceneNode(),
-    new StaticSceneNode()
-  ];
-};
-
-StaticSceneNode.prototype.traverse = function(callback) {
-  var contents = this.contents;
-  for (var i = 0, l = contents.length; i < l; ++i) {
-    callback(contents[i]);
+  function StaticSceneNode(bounds) {
+    this.bounds = bounds;
+    this.children = null;
+    this.contents = [];
   }
 
-  if (this.children) {
-    this.children[0].traverse(callback);
-    this.children[1].traverse(callback);
-    this.children[2].traverse(callback);
-    this.children[3].traverse(callback);
-  }
-};
+  StaticSceneNode.prototype.branch = function() {
+    this.children = [
+      new StaticSceneNode(),
+      new StaticSceneNode(),
+      new StaticSceneNode(),
+      new StaticSceneNode()
+    ];
+  };
 
-function StaticScene(bounds) {
-  this.quadRoot = new StaticSceneNode(bounds);
-};
+  StaticSceneNode.prototype.traverse = function(callback) {
+    var contents = this.contents;
+    for (var i = 0, l = contents.length; i < l; ++i) {
+      callback(contents[i]);
+    }
 
-StaticScene.prototype.traverse = function(callback) {
-  this.quadRoot.traverse(callback);
-};
+    if (this.children) {
+      this.children[0].traverse(callback);
+      this.children[1].traverse(callback);
+      this.children[2].traverse(callback);
+      this.children[3].traverse(callback);
+    }
+  };
+
+  function StaticScene(bounds) {
+    this.quadRoot = new StaticSceneNode(bounds);
+  };
+
+  StaticScene.prototype.traverse = function(callback) {
+    this.quadRoot.traverse(callback);
+  };
+
+  FOUR.StaticScene = StaticScene;
+
+})(FOUR);

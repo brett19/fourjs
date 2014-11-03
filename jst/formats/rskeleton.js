@@ -17,7 +17,7 @@ RSkeletonData.load = function(path, callback) {
     var bones, dummies, i, magic, version;
     var data = new RSkeletonData();
 
-    magic = rh.readStrLen(7);
+    magic = rh._readStringWithLen(7);
     if (magic === 'ZMD0002') {
       version = 2;
     } else if (magic === 'ZMD0003') {
@@ -30,7 +30,7 @@ RSkeletonData.load = function(path, callback) {
     for (var i = 0; i < bones; ++i) {
       var bone = new RSkeletonData.Bone();
       bone.parent   = rh.readUint32();
-      bone.name     = rh.readStr();
+      bone.name     = rh._readString();
       bone.position = rh.readVector3();
       bone.rotation = rh.readQuatwxyz();
 
@@ -46,7 +46,7 @@ RSkeletonData.load = function(path, callback) {
     dummies = rh.readUint32();
     for (i = 0; i < dummies; ++i) {
       var dummy = new RSkeletonData.Bone();
-      dummy.name     = rh.readStr();
+      dummy.name     = rh._readString();
       dummy.parent   = rh.readUint32();
       dummy.position = rh.readVector3();
 

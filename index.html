@@ -12,42 +12,7 @@
     </style>
 </head>
 <body>
-<script id="vertexShaderAh" type="x-shader/x-vertex">
-        precision mediump float;
-        precision mediump int;
-
-        uniform mat4 modelViewMatrix;
-        uniform mat4 projectionMatrix;
-
-        attribute vec3 position;
-        attribute vec4 color;
-
-        varying vec3 vPosition;
-        varying vec4 vColor;
-
-        void main()	{
-          vPosition = position;
-          vColor = color;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-        }
-    </script>
-
-<script id="fragmentShaderAh" type="x-shader/x-fragment">
-        precision mediump float;
-        precision mediump int;
-
-        varying vec3 vPosition;
-        varying vec4 vColor;
-
-        void main()	{
-          gl_FragColor = vColor;
-        }
-    </script>
-
     <script id="vertexShader" type="x-shader/x-vertex">
-        precision mediump float;
-        precision mediump int;
-
         uniform mat4 modelViewMatrix;
         uniform mat4 projectionMatrix;
 
@@ -84,9 +49,6 @@
     </script>
 
     <script id="fragmentShader" type="x-shader/x-fragment">
-        precision mediump float;
-        precision mediump int;
-
         uniform sampler2D texTest;
 
         varying vec3 vPosition;
@@ -101,29 +63,41 @@
         }
     </script>
 
-    <script src="js/thirdparty/stats.min.js"></script>
     <script src="js/thirdparty/gl-matrix.js"></script>
-    <script src="js/util/EventEmitter.js"></script>
+    <script src="js/thirdparty/gl-matrix-ext.js"></script>
+    <script src="js/thirdparty/EventEmitter.js"></script>
     <script src="js/core.js"></script>
     <script src="js/io.js"></script>
-    <script src="js/rendering/Geometry.js"></script>
-    <script src="js/rendering/Renderer.js"></script>
-    <script src="js/rendering/Shader.js"></script>
-    <script src="js/rendering/Texture.js"></script>
+    <script src="js/util/BinaryReader.js"></script>
     <script src="js/scene/SimpleScene.js"></script>
     <script src="js/scene/StaticScene.js"></script>
     <script src="js/scene/SceneNode.js"></script>
     <script src="js/scene/Mesh.js"></script>
+    <script src="js/scene/SkinnedMesh.js"></script>
     <script src="js/scene/Camera.js"></script>
     <script src="js/scene/Skeleton.js"></script>
-    <script src="jst/util/binaryreader.js"></script>
+    <script src="js/scene/debug/AxisHelper.js"></script>
+    <script src="js/scene/debug/SkeletonHelper.js"></script>
+    <script src="js/rendering/GeometryData.js"></script>
+    <script src="js/rendering/Geometry.js"></script>
+    <script src="js/rendering/Shader.js"></script>
+    <script src="js/rendering/Texture.js"></script>
+    <script src="js/rendering/ShaderMaterial.js"></script>
+    <script src="js/rendering/DebugDraw.js"></script>
+    <script src="js/rendering/Renderer.js"></script>
+    <script src="js/other/ShaderManager.js"></script>
+    <script src="js/loaders/TextureLoader.js"></script>
+    <script src="js/loaders/ImageLoader.js"></script>
+    <script src="js/loaders/DDSLoader.js"></script>
+    <script src="js/animation/AnimationHandler.js"></script>
+    <script src="js/animation/Animator.js"></script>
+
+    <script src="jst/thirdparty/stats.min.js"></script>
     <script src="jst/util/roseloader.js"></script>
-    <script src="jst/formats/dds.js"></script>
+    <script src="jst/formats/rtexture.js"></script>
     <script src="jst/formats/rmesh.js"></script>
     <script src="jst/formats/rskeleton.js"></script>
     <script src="jst/formats/ranimation.js"></script>
-    <script src="js/animation/AnimationHandler.js"></script>
-    <script src="js/animation/Animator.js"></script>
     <script src="jst/test.js"></script>
 </body>
 </html>

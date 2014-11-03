@@ -227,7 +227,7 @@ RMesh.loadMesh6 = function(rh) {
 
 
 RMesh.prototype.createGeometry = function() {
-  var geometry = new Geometry();
+  var geometry = new FOUR.Geometry();
 
   geometry.addAttribute('position', this.vertices, 3);
 
@@ -260,7 +260,7 @@ RMesh.load = function(path, callback) {
 
     var version, magic, mesh;
 
-    magic = rh.readStrLen(7);
+    magic = rh._readStringWithLen(7);
     rh.skip(1);
 
     if (magic === 'ZMS0005') {

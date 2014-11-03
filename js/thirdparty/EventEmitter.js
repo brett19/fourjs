@@ -1,6 +1,3 @@
-/**
- * @constructor
- */
 function EventEmitter() {
   this.eventHandlers = {};
 }

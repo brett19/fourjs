@@ -68,7 +68,7 @@ RAnimationData.load = function(path, callback) {
     var channels, i, j, magic;
     var data = new RAnimationData();
 
-    magic = rh.readStrLen(7);
+    magic = rh._readStringWithLen(7);
     rh.skip(1);
 
     if (magic !== 'ZMO0002') {
@@ -141,7 +141,7 @@ RAnimationData.load = function(path, callback) {
 
     // Look for extended ZMO data
     rh.seek(-4);
-    var extTag = rh.readStrLen(4);
+    var extTag = rh._readStringWithLen(4);
     if (extTag === 'EZMO') {
       fileVersion = 2;
     } else if (extTag === '3ZMO') {
